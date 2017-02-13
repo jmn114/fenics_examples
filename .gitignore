@@ -2,6 +2,7 @@
 *.project
 *.vtu
 *.pvd
+*.pyc
 
 
 =======
