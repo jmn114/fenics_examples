@@ -12,34 +12,46 @@ from dolfin import *
 #mesh = UnitSquareMesh(10, 10)
 #mesh = UnitCubeMesh(10, 10, 10)
 
-mesh = Mesh('unitsquaremesh.xml')
-print mesh
-print mesh.topology().dim()
+#mesh = Mesh('unitsquaremesh.xml')
+mesh = Mesh('../mesh_pipe/pipe_coarse.xml')
+##print mesh
+##print mesh.topology().dim()
 
-print mesh.num_cells()
-print mesh.num_vertices()
+##print mesh.num_cells()
+##print mesh.num_vertices()
 #print mesh.coordinates()
 #print mesh.cells()
 #print mesh.hmin()
 #print mesh.hmax()
 
 boundary = BoundaryMesh(mesh, "exterior", True)
-print boundary
-print boundary.topology().dim()
-File("boundarymesh.xml") << boundary
+##print boundary
+##print boundary.topology().dim()
+#File("boundarymesh.xml") << boundary
 
-bottom_bdry = 1
+# bc labels for unitsquare
+#bottom_bdry = 1
+#top_bdry = 2
+#inlet_bdry = 3
+#outlet_bdry = 4
+#internal = 5
+
+# bc labes for pipe 2d
+bottom_bdry = 3
 top_bdry = 2
-inlet_bdry = 3
+inlet_bdry = 1
 outlet_bdry = 4
-internal = 5
+cylinder = 5
+internal = 14
 
-boundaries = MeshFunction('size_t', mesh, 'unitsquaremesh_facet_region.xml')
-print boundaries
-print boundaries.array()
+#boundaries = MeshFunction('size_t', mesh, 'unitsquaremesh_facet_region.xml')
+boundaries = MeshFunction('size_t', mesh, '../mesh_pipe/pipe_coarse_facet_region.xml')
+##print boundaries
+##print boundaries.array()
 ds_p = Measure('ds')[boundaries]
 
-regions = MeshFunction('size_t', mesh, 'unitsquaremesh_physical_region.xml')
+#regions = MeshFunction('size_t', mesh, 'unitsquaremesh_physical_region.xml')
+regions = MeshFunction('size_t', mesh, '../mesh_pipe/pipe_coarse_physical_region.xml')
 dx_p = Measure('dx')[regions]
 
 '''
@@ -80,10 +92,10 @@ for i, facet in enumerate(entities(boundary, bdim)):
     boundary_boundaries.array()[i] = parent_boundarynumber
 
 bottom_mesh = SubMesh(boundary, boundary_boundaries, bottom_bdry)
-print bottom_mesh
+##print bottom_mesh
 
-fluid_mesh = SubMesh(mesh, regions, internal)
-print fluid_mesh
+##fluid_mesh = SubMesh(mesh, regions, internal)
+##print fluid_mesh
 
 
 '''
@@ -115,16 +127,16 @@ bottom_mesh = SubMesh(boundary, boundaries, 1)
 '''
 
 
-bottom_to_fluid = compute_vertex_map(bottom_mesh, fluid_mesh)
-print(bottom_to_fluid)
+##bottom_to_fluid = compute_vertex_map(bottom_mesh, fluid_mesh)
+##print(bottom_to_fluid)
 
 plot(mesh, interactive = False, title="Mesh")
-plot(boundary, interactive = False, title="Boundary")
-plot(fluid_mesh, interactive = False, title="Fluid")
-plot(bottom_mesh, interactive = False, title="Bed")
+#plot(boundary, interactive = False, title="Boundary")
+#plot(fluid_mesh, interactive = False, title="Fluid")
+##plot(bottom_mesh, interactive = False, title="Bed")
 
 # Hold plot
-#interactive()
+interactive()
 
 #exit()
 
@@ -432,8 +444,7 @@ tol = 1E-5
 
 time_end = 1.0
 
-#delta_t = 0.01
-delta_t = 0.001
+delta_t = 0.1
 dt = Constant(delta_t)
 
 if is_transient:
@@ -448,7 +459,7 @@ linear_solver = "gmres"
 #preconditioner = "amg"
 preconditioner = "petsc_amg"
 
-folder_name = "ns_lvs"
+folder_name = "ns"
 
 # Print the current parameters
 print "is_slip = {}".format(is_slip)
@@ -474,7 +485,8 @@ parameters["std_out_all_processes"] = False
 parameters["form_compiler"]["quadrature_degree"] = 8
 
 # Define a kinematic viscosity
-nu = 0.1
+#nu = 0.1
+nu = 1E-3
 
 # Define a force, mesh
 if is_problem_3d:
@@ -576,11 +588,12 @@ p_2_const = Constant(p_2)
 
 # Inlet BC
 #bc_u_1 = DirichletBC(VQ.sub(0), u_inlet_const, domains, 1)
-bc_u_in = DirichletBC(VQ.sub(0), u_inlet_const, boundaries, 3)
+bc_u_in = DirichletBC(VQ.sub(0), u_inlet_const, boundaries, 1)
 # Wall BC
 #bc_u_3 = DirichletBC(VQ.sub(0), u_wall_const, domains, 3)
-bc_u_bottom = DirichletBC(VQ.sub(0), u_wall_const, boundaries, 1)
+bc_u_bottom = DirichletBC(VQ.sub(0), u_wall_const, boundaries, 3)
 bc_u_top = DirichletBC(VQ.sub(0), u_wall_const, boundaries, 2)
+bc_u_cylinder = DirichletBC(VQ.sub(0), u_wall_const, boundaries, 5)
 
 # bcs_up = []
 
@@ -591,9 +604,9 @@ n = FacetNormal(mesh)
 
 if not is_slip:
     #bcs_up = [bc_u_1, bc_u_3]
-    bcs_up = [bc_u_in, bc_u_bottom, bc_u_top]
+    bcs_up = [bc_u_in, bc_u_bottom, bc_u_top, bc_u_cylinder]
 else:
-    bcs_up = [bc_u_in, bc_u_top]
+    bcs_up = [bc_u_in, bc_u_top, bc_u_cylinder]
 
 F = nu * inner(grad(u) + grad(u).T, grad(v_u)) * dx_p \
     - p * div(v_u) * dx_p \
@@ -612,9 +625,9 @@ if is_slip:
 
     cell_size = CellSize(mesh)
 
-    F += - dot(n, t(u, p)) * dot(v_u, n) * ds_p(1) \
-         - dot(u, n) * dot(n, t(v_u, v_p)) * ds_p(1) \
-         + beta / cell_size * dot(u, n) * dot(v_u, n) * ds_p(1)
+    F += - dot(n, t(u, p)) * dot(v_u, n) * ds_p(3) \
+         - dot(u, n) * dot(n, t(v_u, v_p)) * ds_p(3) \
+         + beta / cell_size * dot(u, n) * dot(v_u, n) * ds_p(3)
 
 if is_p_out:
     # Weak form of p_out bc.
@@ -693,34 +706,34 @@ print "*" * 25
 vel = Function(u)
 pre = Function(p)
 
-coordinates = mesh.coordinates()
-print coordinates
-print len(coordinates)
-print coordinates[0]
-print coordinates[0][1]
-print vel(coordinates[0])
+##coordinates = mesh.coordinates()
+##print coordinates
+##print len(coordinates)
+##print coordinates[0]
+##print coordinates[0][1]
+##print vel(coordinates[0])
 
 nodal_values_vel = vel.vector().array()
 nodal_values_pre = pre.vector().array()
-print nodal_values_vel
-print len(nodal_values_vel)
+##print nodal_values_vel
+##print len(nodal_values_vel)
 #print nodal_values_pre
 #print len(nodal_values_pre)
 
-vertex_values = vel.compute_vertex_values()
-print vertex_values
-print len(vertex_values)
+##vertex_values = vel.compute_vertex_values()
+##print vertex_values
+##print len(vertex_values)
 
-for i, x in enumerate(coordinates):        
-    print("vertex %d: \t u(%s) = %s" % (i, x, vel(x)))    
+##for i, x in enumerate(coordinates):        
+##    print("vertex %d: \t u(%s) = %s" % (i, x, vel(x)))    
 
-v2d = vertex_to_dof_map(V)
-print v2d
-print nodal_values_vel[v2d]
+##v2d = vertex_to_dof_map(V)
+##print v2d
+##print nodal_values_vel[v2d]
 
-d2v = dof_to_vertex_map(V)
-print d2v
-#print coordinates[d2v[0]]
+##d2v = dof_to_vertex_map(V)
+##print d2v
+#print coordinates[d2v]
 
 #element = V.element()
 #print element
@@ -736,7 +749,7 @@ print "*" * 25
 if is_plot_solution:
     plot(u, title="u")
     plot(p, title="p")
-    #interactive()
+    interactive()
 
 # Save a solution to a file
 if is_save_solution:
@@ -756,31 +769,43 @@ print "END of N-S"
 # Parameters
 Pe = Constant(1.0e10)
 #Pe = Constant(5.0e2)
-t_end = 10 
+
+#t_end = 10.0
+t_end = 3.0 
+
 dt = 0.1
 
 smesh = bottom_mesh
-print smesh.topology().dim()
+#smesh = UnitSquareMesh(5, 5)
+##print smesh.topology().dim()
+##print smesh.geometry().dim()
 
 def z0_boundary(x, on_boundary):
-    return on_boundary
+    #return on_boundary
+    return on_boundary and not near(x[0], 3.0)
 
 # Define function spaces
-Z = FunctionSpace(smesh, "DG", 1)
-#Z = FunctionSpace(smesh, "CG", 1)
-print Z
+#Z = FunctionSpace(smesh, "DG", 1)
+Z = FunctionSpace(smesh, "CG", 1)
+##print Z
 
 # Vector function space for N-S Velocity
 W = VectorFunctionSpace(smesh, "CG", 1)
-print W
+##print W
 
 #ic = Expression("((pow(x[0]-0.25,2)+pow(x[1]-0.25,2))<0.2*0.2)?(-25*((pow(x[0]-0.25,2)+pow(x[1]-0.25,2))-0.2*0.2)):(0.0)")
 #ic = Expression("((pow(x[0]-0.3,2)+pow(x[1]-0.3,2))<0.5*0.5)?(1.0):(0.0)")
-#ic = Expression(('x[0]'), domain=smesh)
-ic = Constant(0.5)
+#ic = Expression(('x[0]'), domain = smesh)
+#ic = Constant(0.005)
 
+class InitialCondition(Expression):
+    def eval_cell(self, value, x, ufc_cell):
+        if x[0] <= 0.95 and x[0] >= 1.05:
+            value[0] = 0.0
+        else:
+            value[0] = 0.0025
 # 2D #
-b = Expression(("-(x[1]-0.5)","(x[0]-0.5)"), domain=smesh)
+#b = Expression(("-(x[1]-0.5)","(x[0]-0.5)"), domain=smesh)
 #b = Expression(("0.5","0.0"), domain=smesh)
 # 3D #
 #b = Expression(("-(x[1]-0.5)","(x[0]-0.5)","0.0"), domain=smesh)
@@ -792,17 +817,18 @@ bc = DirichletBC(Z, Constant(0.0), z0_boundary)
 # Define unknown and test function(s)
 y = TestFunction(Z)
 z = TrialFunction(Z)
-print "about z; grad(z):"
-print z.rank()
-print z.geometric_dimension()
-print grad(z).rank()
-print grad(z).geometric_dimension()
-#print div(z).rank()
+##print "about z; grad(z):"
+##print z.rank()
+##print z.geometric_dimension()
+##print grad(z).rank()
+#print grad(z).geometric_dimension()
+##print div(z).rank()
 #print div(z).geometric_dimension()
 
 z1 = Function(Z)
 z0 = Function(Z)
-z0 = interpolate(ic, Z)
+#z0 = interpolate(ic, Z)
+z0.interpolate(InitialCondition())
 #print "about z0; grad(z0):"
 #print z0.rank()
 #print z0.geometric_dimension()
@@ -811,52 +837,98 @@ z0 = interpolate(ic, Z)
 #print div(z0).rank()
 #print div(z0).geometric_dimension()
 
-#av = b
-av = Function(W)
-print "about advection velocity av:"
-print av.vector().array()
-print av.rank()
-print av.geometric_dimension()
+#q = b
+q = Function(W)
+##print q.vector().array()
+##print "about advection velocity q:"
+##print q.rank()
+##print q.geometric_dimension()
+##print grad(q).rank()
+##print nabla_grad(q).rank()
+#print grad(q).geometric_dimension()
+##print div(q).rank()
+##print nabla_div(q).rank()
+#print div(q).geometric_dimension()
 
 #a = np.array([1., 0., 0., 1., 2.])
 #print a.shape
 #print a.ndim
 
-av.vector()[:] = np.array([ 1.0, 0.0, 1.0, 0.0, 1.0, 0.0])
-print av.rank()
-print av.geometric_dimension()
+gdim = smesh.geometry().dim()
+
+smsh_dof_coordinates = W.dofmap().tabulate_all_coordinates(smesh).reshape(-1, gdim)
+##print smsh_dof_coordinates
+
+mesh_dof_coordinates = V.dofmap().tabulate_all_coordinates(mesh).reshape(-1, gdim)
+##print mesh_dof_coordinates
+
+sub_to_glob_map = {}
+for sub_dof_nr, sub_dof_coords in enumerate(smsh_dof_coordinates):
+    corresponding_dofs = [i for i, coords in enumerate(mesh_dof_coordinates) if np.array_equal(coords, sub_dof_coords)]
+    
+    #print corresponding_dofs
+    
+    if len(corresponding_dofs) == 2:
+        if sub_dof_nr % 2 == 0:
+            sub_to_glob_map[sub_dof_nr] = corresponding_dofs[0]
+        else:
+            sub_to_glob_map[sub_dof_nr] = corresponding_dofs[1]
+    else:
+        raise NameError("Degrees of freedom not matching.")
+##print sub_to_glob_map
+
+for sub_dof, glob_dof in sub_to_glob_map.iteritems():    
+    q.vector()[sub_dof] = nodal_values_vel[glob_dof]
+    
+##print q.vector().array()
+
+#q.vector()[:] = np.array([ 1.0, 0.0, 1.0, 0.0, 1.0, 0.0])
+#q.vector()[:] = np.array([ 1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,
+#  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,
+#  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,
+#  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.])
+#print q.rank()
+#print q.geometric_dimension()
 
 # Stabilization
 h = CellSize(smesh)
+#print h
 n = FacetNormal(smesh)
+#print n
 theta = Constant(0.5)
 alpha = Constant(0.1)
-f = Constant(0.0)
+#f = Constant(0.0)
 
 # Define variational forms
 
-### INTERIOR PENALTY ###
-'''
-a0 = (1.0/Pe)*inner(grad(z0), grad(y))*dx + inner(av, grad(z0))*y*dx
+### CG INTERIOR PENALTY ###
 
-a1 = (1.0/Pe)*inner(grad(z), grad(y))*dx + inner(av, grad(z))*y*dx
+a0 = (1.0/Pe)*inner(grad(z0), grad(y))*dx + inner(q, grad(z0))*y*dx
+#a0 = div(q)*y*dx
 
-#r = avg(alpha)*avg(h)**2*inner(jump(grad(z),n), jump(grad(y),n))*dS
-'''
+a1 = (1.0/Pe)*inner(grad(z), grad(y))*dx + inner(q, grad(z))*y*dx
+#a1 = div(q)*y*dx
+
+r = avg(alpha)*avg(h)**2*inner(jump(grad(z),n), jump(grad(y),n))*dS
+
+# other alternatives:
+#r = avg(alpha)*avg(h)**2*inner(jump(grad(div(q)),n), jump(grad(y),n))*dS
+#r = avg(alpha)*avg(h)**2*inner(jump(div(q)), jump(grad(y),n))*dS
+
 ### DG ###
-
+'''
 # ( dot(v, n) + |dot(v, n)| )/2.0
-avn = (dot(av, n) + abs(dot(av, n)))/2.0
+qn = (dot(q, n) + abs(dot(q, n)))/2.0
 
 def a(u,v) :
         # Bilinear form
-        a_int = dot(grad(v), (1.0/Pe)*grad(u) - av*u)*dx
+        a_int = dot(grad(v), (1.0/Pe)*grad(u) - q*u)*dx
         
         a_fac = (1.0/Pe)*(alpha/avg(h))*dot(jump(u, n), jump(v, n))*dS \
                 - (1.0/Pe)*dot(avg(grad(u)), jump(v, n))*dS \
                 - (1.0/Pe)*dot(jump(u, n), avg(grad(v)))*dS
         
-        a_vel = dot(jump(v), avn('+')*u('+') - avn('-')*u('-') )*dS  + dot(v, avn*u)*ds
+        a_vel = dot(jump(v), qn('+')*u('+') - qn('-')*u('-') )*dS  + dot(v, qn*u)*ds
         
         a = a_int + a_fac + a_vel
         return a
@@ -864,11 +936,12 @@ def a(u,v) :
 a0 = a(z0, y)
 
 a1 = a(z, y)
+'''
 
 A = inner((z - z0)/dt, y)*dx + theta*a1 + (1-theta)*a0
 
-F = A
-#F = A + r
+#F = A
+F = A + r
 
 # Create files for storing results
 #file = File("results_%s/u.pvd" % (fileName))
@@ -903,3 +976,92 @@ while t < t_end:
 
 # Hold plot
 interactive()
+
+print "*" * 25
+
+##scoordinates = smesh.coordinates()
+##print scoordinates
+##print len(scoordinates)
+##print scoordinates[0]
+##print scoordinates[0][1]
+##print z0(scoordinates[0])
+
+# make a map of dofs from the bottom mesh to the boundarymesh
+
+Zsmsh_dof_coordinates = Z.dofmap().tabulate_all_coordinates(smesh).reshape(-1, gdim)
+##print Zsmsh_dof_coordinates
+
+sub_to_bmesh_map = {}
+for sub_dof_nr, sub_dof_coords in enumerate(Zsmsh_dof_coordinates):
+    corresponding_dofs = [i for i, coords in enumerate(boundary.coordinates()) if np.array_equal(coords, sub_dof_coords)]
+    
+    #print corresponding_dofs
+    
+    if len(corresponding_dofs) == 1:
+        sub_to_bmesh_map[sub_dof_nr] = corresponding_dofs[0]
+    else:
+        raise NameError("Degrees of freedom not matching.")
+##print sub_to_bmesh_map
+
+nodal_values_z = z0.vector().array()
+##print nodal_values_z
+##print len(nodal_values_z)
+
+##vertex_values = z0.compute_vertex_values()
+##print vertex_values
+##print len(vertex_values)
+
+##for i, x in enumerate(scoordinates):        
+##    print("vertex %d: \t u(%s) = %s" % (i, x, z0(x)))    
+
+##v2d = vertex_to_dof_map(Z)
+##print v2d
+##print nodal_values_z[v2d]
+
+##print boundary.coordinates()
+
+for sub_dof, bnd_dof in sub_to_bmesh_map.iteritems():    
+    boundary.coordinates()[bnd_dof][1] = nodal_values_z[sub_dof] * -1
+
+##print boundary.coordinates()
+
+### ALE ###
+
+#plot(mesh, interactive = True)
+#plot(boundary, interactive = True)
+#plot(smesh, interactive = True)
+
+'''
+bcoordinates = boundary.coordinates()
+
+for x in bcoordinates:
+    print x
+    if x[1] <= DOLFIN_EPS:
+        x[0] += 0.0            
+        x[1] -= 5.0
+
+print bcoordinates
+
+for x in scoordinates:
+    print x
+    x[0] += 0.0            
+    x[1] -= 5.0
+ 
+print scoordinates
+'''
+   
+# Move mesh
+#disp = Expression(("0.0", "-5*x[1]"), degree=1)
+#ALE.move(mesh, disp)
+
+ALE.move(mesh, boundary) 
+
+#plot(mesh, interactive = True)
+
+mesh.smooth()
+
+plot(mesh, interactive = True)
+
+#File("pipe_mesh.pvd") << mesh 
+
+File("../mesh_pipe/pipe_coarse.xml") << mesh
