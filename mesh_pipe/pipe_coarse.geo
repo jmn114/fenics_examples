@@ -1,5 +1,5 @@
 D = 0.1;
-size = 1e-2;
+size = 1e-1;
 
 Point (1) = {10*D, 0.05*D + D/2, 0, size};
 Point (2) = {10*D + D/2, 0.05*D + D/2, 0, size};
