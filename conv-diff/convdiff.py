@@ -3,8 +3,10 @@ import os
 import math
 import numpy as np
 from dolfin import *
+from dolfin.cpp.la import list_linear_solver_methods, list_krylov_solver_methods,\
+    krylov_solver_preconditioners
 
-def iter(c):
+def iter(c, s):
 
     # get file name
     #fileName = os.path.splitext(__file__)[0]
@@ -15,7 +17,9 @@ def iter(c):
     #mesh = UnitCubeMesh(10, 10, 10)
     
     #mesh = Mesh('unitsquaremesh.xml')
-    mesh = Mesh('../mesh_pipe/pipe_coarse.xml')
+    res = 'fine'
+    #mesh = Mesh('../mesh_pipe/pipe_fine.xml')
+    mesh = Mesh('../mesh_pipe/pipe_' + str(res) + '.xml')
     ##print mesh
     ##print mesh.topology().dim()
     
@@ -39,21 +43,25 @@ def iter(c):
     #internal = 5
     
     # bc labes for pipe 2d
-    bottom_bdry = 3
+    bottom_bdry = 4
+    bottom_bdry_left = 3
+    #bottom_bdry_right = 5
     top_bdry = 2
     inlet_bdry = 1
-    outlet_bdry = 4
-    cylinder = 5
+    outlet_bdry = 6
+    cylinder = 7
     #internal = 14
     
     #boundaries = MeshFunction('size_t', mesh, 'unitsquaremesh_facet_region.xml')
-    boundaries = MeshFunction('size_t', mesh, '../mesh_pipe/pipe_coarse_facet_region.xml')
+    #boundaries = MeshFunction('size_t', mesh, '../mesh_pipe/pipe_fine_facet_region.xml')
+    boundaries = MeshFunction('size_t', mesh, '../mesh_pipe/pipe_' + str(res) + '_facet_region.xml')
     ##print boundaries
     ##print boundaries.array()
     ds_p = Measure('ds')[boundaries]
     
     #regions = MeshFunction('size_t', mesh, 'unitsquaremesh_physical_region.xml')
-    regions = MeshFunction('size_t', mesh, '../mesh_pipe/pipe_coarse_physical_region.xml')
+    #regions = MeshFunction('size_t', mesh, '../mesh_pipe/pipe_fine_physical_region.xml')
+    regions = MeshFunction('size_t', mesh, '../mesh_pipe/pipe_' + str(res) + '_physical_region.xml')
     dx_p = Measure('dx')[regions]
     
     '''
@@ -279,7 +287,7 @@ def iter(c):
     # Hold plot
     interactive()
     '''
-    ### N-S NON-LINEAR VARIATIONAL PROBLEM ###
+    ### N-S NON-LINEAR MIXED VARIATIONAL PROBLEM ###
     '''
     # Build function spaces (Taylor-Hood)
     V = VectorFunctionSpace(mesh, "CG", 1)
@@ -415,7 +423,7 @@ def iter(c):
     # Hold plot
     interactive()
     '''
-    ### N-S LINEAR VARIATIONAL PROBLEM ###
+    ### N-S LINEAR MIXED VARIATIONAL PROBLEM ###
     
     # Define a parameters
     #is_problem_3d = True
@@ -441,13 +449,13 @@ def iter(c):
     
     p_2 = 0.0
     #p_2 = 10.0
-    u_inlet = 1.0
+    u_inlet = 0.5
     
     # max_iter = 1
     max_iter = 1000
     tol = 1E-5
     
-    time_end = 1.0
+    time_end = 5.0
     
     delta_t = 0.1
     dt = Constant(delta_t)
@@ -456,13 +464,14 @@ def iter(c):
         omega = 1.0
     else:
         omega = 0.4
+        
+    print list_linear_solver_methods()
+    print list_krylov_solver_methods()
+    print list_krylov_solver_preconditioners()
     
-    linear_solver = "gmres"
-    #linear_solver = "tfqmr"
+    linear_solver = "gmres"      
     
-    #preconditioner = "ilu"
-    #preconditioner = "amg"
-    preconditioner = "petsc_amg"
+    preconditioner = "petsc_amg"   
     
     folder_name = "ns"
     
@@ -477,7 +486,7 @@ def iter(c):
         print "linear_solver = {}".format(linear_solver)
         print "preconditioner = {}".format(preconditioner)
     
-    print "*" * 25
+    print "*" * 25    
     
     # Define a dolfin parameters
     parameters["linear_algebra_backend"] = "PETSc"
@@ -485,9 +494,9 @@ def iter(c):
     parameters["mesh_partitioner"] = "SCOTCH"
     parameters["form_compiler"]["representation"] = "quadrature"
     parameters["form_compiler"]["optimize"] = True
-    parameters["form_compiler"]["cpp_optimize"] = True
-    parameters["std_out_all_processes"] = False
+    parameters["form_compiler"]["cpp_optimize"] = True    
     parameters["form_compiler"]["quadrature_degree"] = 8
+    parameters["std_out_all_processes"] = False    
     
     # Define a kinematic viscosity
     #nu = 0.1
@@ -514,10 +523,10 @@ def iter(c):
     #interactive()
     
     # Define function spaces
-    #V = VectorFunctionSpace(mesh, "CG", 2)
-    V = VectorFunctionSpace(mesh, "CG", 1)
+    #V = VectorFunctionSpace(mesh, "CG", 1)
+    V = VectorFunctionSpace(mesh, "CG", 2)    
     Q = FunctionSpace(mesh, "CG", 1)
-    VQ = V * Q
+    VQ = V * Q # Mixed function space
     
     # Define functions
     up = TrialFunction(VQ)
@@ -593,12 +602,15 @@ def iter(c):
     
     # Inlet BC
     #bc_u_1 = DirichletBC(VQ.sub(0), u_inlet_const, domains, 1)
-    bc_u_in = DirichletBC(VQ.sub(0), u_inlet_const, boundaries, 1)
+    bc_u_in = DirichletBC(VQ.sub(0), u_inlet_const, boundaries, inlet_bdry)
     # Wall BC
     #bc_u_3 = DirichletBC(VQ.sub(0), u_wall_const, domains, 3)
-    bc_u_bottom = DirichletBC(VQ.sub(0), u_wall_const, boundaries, 3)
-    bc_u_top = DirichletBC(VQ.sub(0), u_wall_const, boundaries, 2)
-    bc_u_cylinder = DirichletBC(VQ.sub(0), u_wall_const, boundaries, 5)
+    bc_u_bottom = DirichletBC(VQ.sub(0), u_wall_const, boundaries, bottom_bdry)
+    bc_u_bottom_left = DirichletBC(VQ.sub(0), u_wall_const, boundaries, bottom_bdry_left)
+    #bc_u_bottom_right = DirichletBC(VQ.sub(0), u_wall_const, boundaries, bottom_bdry_right)
+    
+    bc_u_top = DirichletBC(VQ.sub(0), u_wall_const, boundaries, top_bdry)
+    bc_u_cylinder = DirichletBC(VQ.sub(0), u_wall_const, boundaries, cylinder)
     
     # bcs_up = []
     
@@ -609,7 +621,7 @@ def iter(c):
     
     if not is_slip:
         #bcs_up = [bc_u_1, bc_u_3]
-        bcs_up = [bc_u_in, bc_u_bottom, bc_u_top, bc_u_cylinder]
+        bcs_up = [bc_u_in, bc_u_top, bc_u_cylinder, bc_u_bottom, bc_u_bottom_left]
     else:
         bcs_up = [bc_u_in, bc_u_top, bc_u_cylinder]
     
@@ -629,14 +641,23 @@ def iter(c):
         beta = Constant(10.0)
     
         cell_size = CellSize(mesh)
+        #cell_size = MaxFacetEdgeLength(mesh)
     
-        F += - dot(n, t(u, p)) * dot(v_u, n) * ds_p(3) \
-             - dot(u, n) * dot(n, t(v_u, v_p)) * ds_p(3) \
-             + beta / cell_size * dot(u, n) * dot(v_u, n) * ds_p(3)
-    
+        F += - dot(n, t(u, p)) * dot(v_u, n) * ds_p(bottom_bdry) \
+             - dot(u, n) * dot(n, t(v_u, v_p)) * ds_p(bottom_bdry) \
+             + beta / cell_size * dot(u, n) * dot(v_u, n) * ds_p(bottom_bdry)
+        
+        F += - dot(n, t(u, p)) * dot(v_u, n) * ds_p(bottom_bdry_left) \
+             - dot(u, n) * dot(n, t(v_u, v_p)) * ds_p(bottom_bdry_left) \
+             + beta / cell_size * dot(u, n) * dot(v_u, n) * ds_p(bottom_bdry_left)
+             
+        #F += - dot(n, t(u, p)) * dot(v_u, n) * ds_p(bottom_bdry_right) \
+        #     - dot(u, n) * dot(n, t(v_u, v_p)) * ds_p(bottom_bdry_right) \
+        #     + beta / cell_size * dot(u, n) * dot(v_u, n) * ds_p(bottom_bdry_right)        
+             
     if is_p_out:
         # Weak form of p_out bc.
-        F += inner(p_2_const * n, v_u) * ds_p(4)
+        F += inner(p_2_const * n, v_u) * ds_p(outlet_bdry)
     
     if is_transient:
         F += (1 / dt) * inner(u - u_0, v_u) * dx_p
@@ -660,6 +681,9 @@ def iter(c):
         if is_iterative_solver:
             solver.parameters["linear_solver"] = linear_solver
             solver.parameters["preconditioner"] = preconditioner
+            solver.parameters["krylov_solver"]["monitor_convergence"] = True
+            solver.parameters["krylov_solver"]["absolute_tolerance"] = 1E-10
+            solver.parameters["krylov_solver"]["relative_tolerance"] = 1E-8
     
         solver.solve()
     
@@ -680,11 +704,12 @@ def iter(c):
                eps > tol):
     
             iter_ += 1
-            time += delta_t
-    
-            eps = solve()
-    
+                
+            eps = solve()            
+                
             print "iter = {:d}; eps_up = {:e}; time = {:.2f}\n".format(iter_, eps, time)
+            
+            time += delta_t
     
     else:
         # Solve stationary Navier-Stokes problem with Picard method
@@ -752,9 +777,9 @@ def iter(c):
     
     # Plot a solution
     ##if is_plot_solution:
-        ##plot(u, title="u")
-        ##plot(p, title="p")
-        ##interactive()
+    ##    plot(u, title="u")
+    ##    plot(p, title="p")
+    ##    interactive()
     
     # Save a solution to a file
     if is_save_solution:
@@ -771,6 +796,12 @@ def iter(c):
     
     print "END of N-S"
     
+    print "*" * 25
+    print "*" * 25
+    print("ITERATION NUMBER:", c)           
+    print "*" * 25
+    print "*" * 25
+    
     ### INTERIM DEFINING NEW MEASURES ###
     #sub_bottom = CellFunction("size_t", bottom_mesh)
     #sub_bottom = MeshFunction("size_t", bottom_mesh)
@@ -784,26 +815,41 @@ def iter(c):
     #Pe = Constant(5.0e2)
     
     #t_end = 10.0
-    t_end = 1.0 
+    t_end = 5.0 
     
-    dt = 1.0 # only ONE time step
+    dt = 0.1
     
     smesh = bottom_mesh
     #smesh = UnitSquareMesh(5, 5)
     ##print smesh.topology().dim()
     ##print smesh.geometry().dim()
     
+    #class NoScour(SubDomain):
+    #    def inside(self, x, on_boundary):            
+            #return on_boundary and not near(x[0], 3.0)
+            #return between(x[0], (0.0, 0.95)) and between(x[0], (1.05, 3.0))
+    #        return x[0] <= 0.95 + DOLFIN_EPS and x[0] >= 1.05 + DOLFIN_EPS                
+    
+    #noscour = NoScour()
+    
+    #domains = MeshFunction("size_t", smesh)
+    #domains.set_all(0)
+    #noscour.mark(domains, 1)
+    
     def z0_boundary(x, on_boundary):
         #return on_boundary
-        return on_boundary and not near(x[0], 3.0)
-    
+        return on_boundary and not near(x[0], 3.0)  
+        #return between(x[0], (0.0, 0.95)) and between(x[0], (1.05, 3.0))
+        #return x[0] <= 0.95 + DOLFIN_EPS and x[0] >= 1.05 + DOLFIN_EPS
+            
     # Define function spaces
     #Z = FunctionSpace(smesh, "DG", 1)
     Z = FunctionSpace(smesh, "CG", 1)
     ##print Z
     
     # Vector function space for N-S Velocity
-    W = VectorFunctionSpace(smesh, "CG", 1)
+    #W = VectorFunctionSpace(smesh, "DG", 1)
+    W = VectorFunctionSpace(smesh, "CG", 1) # SAME ORDER AS THE Z SPACE    
     ##print W
     
     #ic = Expression("((pow(x[0]-0.25,2)+pow(x[1]-0.25,2))<0.2*0.2)?(-25*((pow(x[0]-0.25,2)+pow(x[1]-0.25,2))-0.2*0.2)):(0.0)")
@@ -813,9 +859,9 @@ def iter(c):
     
     class InitialCondition(Expression):
         def eval_cell(self, value, x, ufc_cell):
-            if x[0] <= 0.95 and x[0] >= 1.05:
+            if x[0] <= 0.9 and x[0] >= 1.1:
             #if x[0] >= 0.4:    
-                value[0] = 0.001
+                value[0] = 0.000
             else:
                 value[0] = 0.001
     
@@ -828,6 +874,7 @@ def iter(c):
     
     #bc = DirichletBC(Z,Constant(0.0),DomainBoundary())
     bc = DirichletBC(Z, Constant(0.0), z0_boundary)
+    #bc = DirichletBC(Z, Constant(0.0), domains, 1)
     	
     # Define unknown and test function(s)
     y = TestFunction(Z)
@@ -896,11 +943,13 @@ def iter(c):
     
     ### SEDIMENT TRANSPORT FLUX FORMULAE ###
     
-    #a = 1E-4
-    a = 0.0002391
+    #a = 1E-3
+    #a = 0.00024
     
-    #q = a * U * U**2 # simple Grass model
-    q = a * U        # simple linear model
+    a = s
+    
+    q = a * U * U**2    # simple Grass model
+    ##q = a * U         # simple linear model
     
     #U.vector()[:] = np.array([ 1.0, 0.0, 1.0, 0.0, 1.0, 0.0])
     #U.vector()[:] = np.array([ 1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,
@@ -912,6 +961,7 @@ def iter(c):
     
     # Stabilization
     h = CellSize(smesh)
+    #h = MaxFacetEdgeLength(smesh)
     #print h
     n = FacetNormal(smesh)
     #print n
@@ -921,7 +971,7 @@ def iter(c):
     
     # Define variational forms
     
-    ### CG INTERIOR PENALTY ###
+    ### INTERIOR PENALTY ###
     
     #a0 = (1.0/Pe)*inner(grad(z0), grad(y))*dx + inner(q, grad(z0))*y*dx
     a0 = div(q)*y*dx
@@ -969,10 +1019,10 @@ def iter(c):
     
     ffc_options = {"optimize": True, "quadrature_degree": 8}
     problem = LinearVariationalProblem(lhs(F), rhs(F), z1, [bc], form_compiler_parameters=ffc_options)
+    #problem = LinearVariationalProblem(lhs(F), rhs(F), z1, form_compiler_parameters=ffc_options) # homogeneous neumann bcs
     solver = LinearVariationalSolver(problem)
     
-    #J = derivative(F, z1)
-    
+    #J = derivative(F, z1)    
     #problem = NonlinearVariationalProblem(F, z1, [bc], J, form_compiler_parameters=ffc_options)
     #solver = NonlinearVariationalSolver(problem)
     
@@ -1002,6 +1052,8 @@ def iter(c):
     File("./output/z" + str(c) + ".pvd") << z0
     
     print "*" * 25
+    
+    ### ALE ###    
     
     ##scoordinates = smesh.coordinates()
     ##print scoordinates
@@ -1049,9 +1101,7 @@ def iter(c):
         boundary.coordinates()[bnd_dof][1] += nodal_values_z[sub_dof] * -1 ## vertical displacement of vertices
     
     print "*" * 25
-    ##print boundary.coordinates()
-    
-    ### ALE ###
+    ##print boundary.coordinates()        
     
     #plot(mesh, interactive = True)
     #plot(boundary, interactive = True)
@@ -1082,14 +1132,17 @@ def iter(c):
     
     ALE.move(mesh, boundary) 
     
-    #plot(mesh, interactive = True)
+    ##plot(mesh, interactive = False)
+    
+    ##interactive()
     
     mesh.smooth()
     
     ##plot(mesh, interactive = False)
     
-    #interactive()
+    ##interactive()
     
     #File("pipe_mesh.pvd") << mesh 
     
-    File("../mesh_pipe/pipe_coarse.xml") << mesh
+    #File("../mesh_pipe/pipe_fine.xml") << mesh
+    File('../mesh_pipe/pipe_' + str(res) + '.xml') << mesh
