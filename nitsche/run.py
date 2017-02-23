@@ -1,6 +1,6 @@
 import shutil
 import glob, os
-from nitsche import *
+from stokes-ale import *
 
 d_t = 0.00001 # change in nitsche.py
 t = 0.0

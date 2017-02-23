@@ -1,14 +1,14 @@
 D = 0.1;
 size = 5e-1;
 
-Point (1) = {10*D, 0.05*D + D/2, 0, size/500};
-Point (2) = {10*D + D/2, 0.05*D + D/2, 0, size/500};
-Point (3) = {10*D, 0.05*D + D, 0, size/500};
-Point (4) = {10*D - D/2, 0.05*D + D/2, 0, size/500};
-Point (5) = {10*D, 0.05*D, 0, size/500};
+Point (1) = {5*D, 0.05*D + D/2, 0, size/500};
+Point (2) = {5*D + D/2, 0.05*D + D/2, 0, size/500};
+Point (3) = {5*D, 0.05*D + D, 0, size/500};
+Point (4) = {5*D - D/2, 0.05*D + D/2, 0, size/500};
+Point (5) = {5*D, 0.05*D, 0, size/500};
 Point (6) = {0, 0, 0, size/25};
-Point (7) = {10*D - D, 0, 0, size/500};
-Point (8) = {10*D + D, 0, 0, size/500};
+Point (7) = {5*D - D, 0, 0, size/500};
+Point (8) = {5*D + D, 0, 0, size/500};
 Point (9) = {30*D, 0, 0, size/25};
 Point (10) = {30*D, 4*D, 0, size/10};
 Point (11) = {0, 4*D, 0, size/10};
@@ -26,8 +26,8 @@ Line (10) = {9, 10};
 
 Physical Line (1) = {5}; //left
 Physical Line (2) = {6}; //top
-Physical Line (3) = {7}; //bottom_left
-Physical Line (4) = {8, 9}; //bottom
+//Physical Line (3) = {7}; //bottom_left
+Physical Line (4) = {7, 8, 9}; //bottom
 //Physical Line (5) = {9}; //bottom_right
 Physical Line (6) = {10}; //right
 Physical Line (7) = {1, 2, 3, 4}; //circle

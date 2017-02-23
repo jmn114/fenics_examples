@@ -17,7 +17,7 @@ def iter(c, s):
     #mesh = UnitCubeMesh(10, 10, 10)
     
     #mesh = Mesh('unitsquaremesh.xml')
-    res = 'fine'
+    res = 'coarse'
     #mesh = Mesh('../mesh_pipe/pipe_fine.xml')
     mesh = Mesh('../mesh_pipe/pipe_' + str(res) + '.xml')
     ##print mesh
@@ -44,7 +44,7 @@ def iter(c, s):
     
     # bc labes for pipe 2d
     bottom_bdry = 4
-    bottom_bdry_left = 3
+    #bottom_bdry_left = 3
     #bottom_bdry_right = 5
     top_bdry = 2
     inlet_bdry = 1
@@ -606,7 +606,7 @@ def iter(c, s):
     # Wall BC
     #bc_u_3 = DirichletBC(VQ.sub(0), u_wall_const, domains, 3)
     bc_u_bottom = DirichletBC(VQ.sub(0), u_wall_const, boundaries, bottom_bdry)
-    bc_u_bottom_left = DirichletBC(VQ.sub(0), u_wall_const, boundaries, bottom_bdry_left)
+    #bc_u_bottom_left = DirichletBC(VQ.sub(0), u_wall_const, boundaries, bottom_bdry_left)
     #bc_u_bottom_right = DirichletBC(VQ.sub(0), u_wall_const, boundaries, bottom_bdry_right)
     
     bc_u_top = DirichletBC(VQ.sub(0), u_wall_const, boundaries, top_bdry)
@@ -621,7 +621,7 @@ def iter(c, s):
     
     if not is_slip:
         #bcs_up = [bc_u_1, bc_u_3]
-        bcs_up = [bc_u_in, bc_u_top, bc_u_cylinder, bc_u_bottom, bc_u_bottom_left]
+        bcs_up = [bc_u_in, bc_u_top, bc_u_cylinder, bc_u_bottom]
     else:
         bcs_up = [bc_u_in, bc_u_top, bc_u_cylinder]
     
@@ -647,9 +647,9 @@ def iter(c, s):
              - dot(u, n) * dot(n, t(v_u, v_p)) * ds_p(bottom_bdry) \
              + beta / cell_size * dot(u, n) * dot(v_u, n) * ds_p(bottom_bdry)
         
-        F += - dot(n, t(u, p)) * dot(v_u, n) * ds_p(bottom_bdry_left) \
-             - dot(u, n) * dot(n, t(v_u, v_p)) * ds_p(bottom_bdry_left) \
-             + beta / cell_size * dot(u, n) * dot(v_u, n) * ds_p(bottom_bdry_left)
+        #F += - dot(n, t(u, p)) * dot(v_u, n) * ds_p(bottom_bdry_left) \
+        #     - dot(u, n) * dot(n, t(v_u, v_p)) * ds_p(bottom_bdry_left) \
+        #     + beta / cell_size * dot(u, n) * dot(v_u, n) * ds_p(bottom_bdry_left)
              
         #F += - dot(n, t(u, p)) * dot(v_u, n) * ds_p(bottom_bdry_right) \
         #     - dot(u, n) * dot(n, t(v_u, v_p)) * ds_p(bottom_bdry_right) \
@@ -859,7 +859,7 @@ def iter(c, s):
     
     class InitialCondition(Expression):
         def eval_cell(self, value, x, ufc_cell):
-            if x[0] <= 0.9 and x[0] >= 1.1:
+            if x[0] <= 0.5 and x[0] >= 1.1:
             #if x[0] >= 0.4:    
                 value[0] = 0.000
             else:
@@ -958,6 +958,14 @@ def iter(c, s):
     #  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.,  1.,  0.])
     #print U.rank()
     #print U.geometric_dimension()
+    
+    # for the bed celerity
+    
+    # C = Function(W)
+    # zb = Function(W)
+    
+    #C.vector()[:] = q.vector().array()/zb.vector().array()    
+    
     
     # Stabilization
     h = CellSize(smesh)
