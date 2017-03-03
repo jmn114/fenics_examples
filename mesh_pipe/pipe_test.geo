@@ -7,9 +7,9 @@ Point (3) = {2*D, 0.5*D + D, 0, size};
 Point (4) = {2*D - D/2, 0.5*D + D/2, 0, size};
 Point (5) = {2*D, 0.5*D, 0, size};
 Point (6) = {0, 0, 0, size};
-Point (7) = {4*D, 0, 0, size};
-Point (8) = {4*D, 4*D, 0, size};
-Point (9) = {0, 4*D, 0, size};
+Point (7) = {5*D, 0, 0, size};
+Point (8) = {5*D, 2*D, 0, size};
+Point (9) = {0, 2*D, 0, size};
 
 Circle (1) = {2, 1, 3};
 Circle (2) = {3, 1, 4};

@@ -3,7 +3,7 @@ import glob, os
 from convdiff import *
 
 i = 1
-I = 50
+I = 30
 
 c = 1
 while i <= I:

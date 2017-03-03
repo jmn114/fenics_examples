@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <dolfin xmlns:dolfin="http://fenicsproject.org">
-  <mesh_function type="uint" dim="2" size="80">
+  <mesh_function type="uint" dim="2" size="52">
     <entity index="0" value="14"/>
     <entity index="1" value="14"/>
     <entity index="2" value="14"/>
@@ -53,33 +53,5 @@
     <entity index="49" value="14"/>
     <entity index="50" value="14"/>
     <entity index="51" value="14"/>
-    <entity index="52" value="14"/>
-    <entity index="53" value="14"/>
-    <entity index="54" value="14"/>
-    <entity index="55" value="14"/>
-    <entity index="56" value="14"/>
-    <entity index="57" value="14"/>
-    <entity index="58" value="14"/>
-    <entity index="59" value="14"/>
-    <entity index="60" value="14"/>
-    <entity index="61" value="14"/>
-    <entity index="62" value="14"/>
-    <entity index="63" value="14"/>
-    <entity index="64" value="14"/>
-    <entity index="65" value="14"/>
-    <entity index="66" value="14"/>
-    <entity index="67" value="14"/>
-    <entity index="68" value="14"/>
-    <entity index="69" value="14"/>
-    <entity index="70" value="14"/>
-    <entity index="71" value="14"/>
-    <entity index="72" value="14"/>
-    <entity index="73" value="14"/>
-    <entity index="74" value="14"/>
-    <entity index="75" value="14"/>
-    <entity index="76" value="14"/>
-    <entity index="77" value="14"/>
-    <entity index="78" value="14"/>
-    <entity index="79" value="14"/>
   </mesh_function>
 </dolfin>
